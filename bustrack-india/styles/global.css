@@ -1,0 +1,319 @@
+/**
+ * global.css — Global styles with performance-first approach
+ *
+ * ⚡ KEY DECISIONS:
+ *
+ * 1. CSS Custom Properties (variables) used for ALL colors.
+ *    Single source of truth, zero JS needed for theming.
+ *
+ * 2. Minimal wildcard reset (*) — only box-sizing and margin/padding.
+ *    Full wildcard resets like normalize.css add parse overhead.
+ *
+ * 3. Font loading: swap display strategy — text renders immediately
+ *    with system font, custom font swaps in when ready (no FOIT).
+ *
+ * 4. No heavy gradients/filters on interactive elements.
+ *    Linear-gradient on static backgrounds is fine; avoid on
+ *    elements that animate (opacity/transform transitions preferred).
+ *
+ * 5. CSS contain on section containers — prevents cross-section reflows.
+ *
+ * 6. -webkit-font-smoothing: antialiased — smoother text rendering on macOS/iOS.
+ *
+ * 7. text-rendering: optimizeSpeed — faster text layout on mobile
+ *    (trades ligature rendering for performance — acceptable for UI).
+ */
+
+/* ── Custom Properties ───────────────────────────────────────────────────────── */
+:root {
+  /* Brand colors */
+  --bus    : #e8820c;
+  --driver : #d4511a;
+  --pass   : #1967d2;
+  --green  : #1e8e3e;
+  --red    : #c5221f;
+
+  /* Surface colors */
+  --bg     : #f5f7fa;
+  --panel  : #ffffff;
+  --card   : #f0f4f8;
+  --card2  : #e8edf5;
+
+  /* Border colors */
+  --border : #dde3ec;
+  --border2: #c8d0de;
+
+  /* Text colors */
+  --text   : #1a2236;
+  --muted  : #5a6a85;
+  --muted2 : #9aabbd;
+
+  /* Shape */
+  --radius   : 14px;
+  --radius-sm: 10px;
+}
+
+/* ── Reset ───────────────────────────────────────────────────────────────────── */
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* ── Base ────────────────────────────────────────────────────────────────────── */
+html,
+body {
+  height: 100%;
+  overflow-x: hidden;
+  /* ⚡ Native momentum scroll on mobile */
+  -webkit-overflow-scrolling: touch;
+  /* ⚡ Prevent pull-to-refresh interfering with map */
+  overscroll-behavior: none;
+}
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  /* ⚡ Faster text rendering on mobile */
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeSpeed;
+  /* ⚡ Remove tap highlight on Android */
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Inherit font in form elements */
+input,
+button,
+select,
+textarea {
+  font-family: inherit;
+}
+
+/* ── Screen system ───────────────────────────────────────────────────────────── */
+.screen {
+  display: none;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.screen.active {
+  display: flex;
+}
+
+/* Passenger screen: fixed inset so map fills viewport */
+#screen-passenger {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  display: none;
+}
+
+#screen-passenger.active {
+  display: block;
+}
+
+/* ── Typography ──────────────────────────────────────────────────────────────── */
+label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 1.1px;
+  margin-bottom: 7px;
+  margin-top: 14px;
+}
+
+label:first-child {
+  margin-top: 0;
+}
+
+/* ── Buttons — base shared styles ────────────────────────────────────────────── */
+button {
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:active {
+  opacity: 0.82;
+}
+
+/* ── Scrollbars — thin & neutral ─────────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border2);
+  border-radius: 4px;
+}
+
+/* ── Animations ──────────────────────────────────────────────────────────────── */
+
+/* Landing page bus bounce — only on landing, not on map */
+@keyframes floatBus {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-10px); }
+}
+
+/* Live dot pulse */
+@keyframes livepulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(30, 142, 62, 0.45); }
+  50%       { box-shadow: 0 0 0 6px rgba(30, 142, 62, 0); }
+}
+
+/* Generic fade-in for alerts */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* Card slide-up (splash, bus cards) */
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* Spinner */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Utility classes ─────────────────────────────────────────────────────────── */
+.hidden { display: none !important; }
+.show   { display: flex !important; }
+
+/* Geo spinner (admin stop validation) */
+.geo-spinner {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--border);
+  border-top-color: var(--pass);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  vertical-align: middle;
+  margin-right: 5px;
+}
+
+/* ── Supabase status bar ──────────────────────────────────────────────────────── */
+.sb-status-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 6px 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  z-index: 9999;
+  transition: background 0.3s, color 0.3s;
+}
+
+.sb-status-bar.connected    { background: rgba(30,142,62,.08); color: var(--green); border-top: 1px solid rgba(30,142,62,.18); }
+.sb-status-bar.disconnected { background: rgba(197,34,31,.06); color: var(--red);   border-top: 1px solid rgba(197,34,31,.12); }
+.sb-status-bar.syncing      { background: rgba(25,103,210,.07); color: var(--pass); border-top: 1px solid rgba(25,103,210,.15); }
+
+.sb-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.sb-status-bar.connected .sb-dot    { background: var(--green); animation: livepulse 1.4s infinite; }
+.sb-status-bar.disconnected .sb-dot { background: var(--red); }
+.sb-status-bar.syncing .sb-dot      { background: var(--pass); animation: spin 0.7s linear infinite; }
+
+/* ── Live badge ──────────────────────────────────────────────────────────────── */
+.live-badge {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  background: rgba(30,142,62,.10);
+  border: 1px solid rgba(30,142,62,.25);
+  border-radius: 50px;
+  padding: 5px 12px;
+  font-size: 12px;
+  color: var(--green);
+  font-weight: 600;
+}
+
+.live-badge.show { display: flex; }
+
+.live-dot {
+  width: 8px;
+  height: 8px;
+  background: var(--green);
+  border-radius: 50%;
+  animation: livepulse 1.4s infinite;
+}
+
+/* ── App header ──────────────────────────────────────────────────────────────── */
+.app-header {
+  background: #fff;
+  border-bottom: 1px solid var(--border);
+  padding: 12px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  position: sticky;
+  top: 0;
+  z-index: 1200;
+  /* ⚡ No box-shadow — border is cheaper to paint */
+}
+
+.app-header .logo {
+  font-family: 'Syne', sans-serif;
+  font-size: 19px;
+  font-weight: 800;
+}
+
+.app-header .logo span { color: var(--bus); }
+
+.header-badge {
+  padding: 5px 14px;
+  border-radius: 50px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.badge-driver { background: rgba(212,81,26,.12);  color: var(--driver); border: 1px solid rgba(212,81,26,.25); }
+.badge-pass   { background: rgba(25,103,210,.12); color: var(--pass);   border: 1px solid rgba(25,103,210,.25); }
+.badge-admin  { background: rgba(30,142,62,.12);  color: var(--green);  border: 1px solid rgba(30,142,62,.25); }
+
+.header-right { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
+.btn-sm     { padding: 7px 14px; border-radius: 8px; border: none; font-size: 12px; font-weight: 600; }
+.btn-logout { background: var(--card); color: var(--muted); border: 1px solid var(--border); }
+
+/* ── Status bar ──────────────────────────────────────────────────────────────── */
+.status-bar {
+  padding: 8px 16px;
+  font-size: 12px;
+  color: var(--muted);
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  text-align: center;
+  min-height: 32px;
+}
+
+/* ── Alert boxes ─────────────────────────────────────────────────────────────── */
+.alert-ok  { background: rgba(30,142,62,.08);  border: 1px solid rgba(30,142,62,.2);  color: var(--green); padding: 9px 14px; border-radius: 9px; font-size: 13px; margin-bottom: 12px; animation: fadeIn .3s; }
+.alert-err { background: rgba(197,34,31,.08);  border: 1px solid rgba(197,34,31,.18); color: var(--red);   padding: 9px 14px; border-radius: 9px; font-size: 13px; margin-bottom: 12px; animation: fadeIn .3s; }
+
+/* ── Back / hint links ───────────────────────────────────────────────────────── */
+.back-link { text-align: center; margin-top: 16px; font-size: 13px; color: var(--muted); cursor: pointer; }
+.hint      { font-size: 12px; color: var(--muted); text-align: center; margin-top: 10px; opacity: .7; }

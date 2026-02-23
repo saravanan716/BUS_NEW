@@ -1,0 +1,314 @@
+/**
+ * mobileLayout.css — Mobile-first layout rules
+ *
+ * ⚡ PERFORMANCE PRINCIPLES APPLIED HERE:
+ *
+ * 1. NO backdrop-filter anywhere — it forces GPU re-compositing every frame
+ *    on mobile, causing 30fps drops. Use solid/semi-opaque backgrounds instead.
+ *
+ * 2. NO box-shadow on frequently-animated elements — shadows trigger
+ *    paint invalidation. Use borders or outline instead where possible.
+ *
+ * 3. will-change:transform on animated overlays — pre-promotes to GPU layer
+ *    so show/hide transitions are compositor-only (no layout/paint).
+ *
+ * 4. contain:layout on map containers — isolates map reflows from the rest
+ *    of the document. Map tile loads do NOT cascade layout recalculations.
+ *
+ * 5. touch-action:pan-x pan-y on map — enables native scroll momentum
+ *    and suppresses 300ms tap delay on iOS without needing FastClick.
+ *
+ * 6. -webkit-overflow-scrolling:touch on scroll containers — hardware-
+ *    accelerated momentum scrolling on iOS (avoids janky list scrolling).
+ *
+ * 7. No heavy CSS animations on map page — floatBus etc. only on landing.
+ *    Map must maintain 60fps at all times.
+ */
+
+/* ── Map fullscreen — contain layout reflows ────────────────────────────────── */
+#pass-map-wrap,
+#driver-map-wrap {
+  position: relative;
+  contain: layout style;          /* ⚡ Isolate reflows to map container */
+  -webkit-tap-highlight-color: transparent;
+}
+
+#pass-map,
+#driver-map {
+  position: absolute;
+  inset: 0;
+  touch-action: pan-x pan-y;     /* ⚡ Native pan, no 300ms tap delay */
+  will-change: transform;         /* ⚡ GPU compositing for pan/zoom */
+  cursor: grab;
+}
+
+#pass-map:active,
+#driver-map:active {
+  cursor: grabbing;
+}
+
+/* ── Floating overlays — all position:fixed ─────────────────────────────────── */
+/* ⚡ position:fixed removes elements from document flow entirely.
+   The map container is NEVER pushed or compressed by these overlays. */
+
+.pass-search-float {
+  position: fixed;
+  top: 10px;
+  left: 12px;
+  right: 12px;
+  z-index: 2000;
+  /* ⚡ No backdrop-filter — use opaque bg */
+  background: rgba(255, 255, 255, 0.97);
+  border-radius: 18px;
+  padding: 10px 12px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.14);
+  will-change: transform;         /* ⚡ Pre-promote for potential animation */
+}
+
+.bus-results-overlay {
+  position: fixed;
+  bottom: 0;
+  left: 12px;
+  right: 12px;
+  z-index: 1800;
+  background: rgba(255, 255, 255, 0.97);
+  border-radius: 18px 18px 0 0;
+  max-height: 45vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch; /* ⚡ Momentum scroll on iOS */
+  overscroll-behavior: contain;       /* ⚡ Prevent scroll chaining to map */
+  display: none;
+  box-shadow: 0 -2px 16px rgba(0, 0, 0, 0.10);
+  will-change: transform;
+}
+
+.bus-results-overlay.show {
+  display: block;
+  animation: slideUpPanel 0.28s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+@keyframes slideUpPanel {
+  from { transform: translateY(60px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+.bus-info-card {
+  position: fixed;
+  bottom: -320px;
+  left: 12px;
+  right: 12px;
+  z-index: 2000;
+  background: rgba(255, 255, 255, 0.97);
+  border-radius: 20px 20px 16px 16px;
+  padding: 16px;
+  max-height: 55vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  /* ⚡ will-change on bottom transition — GPU-composited slide */
+  will-change: bottom;
+  transition: bottom 0.32s cubic-bezier(0.25, 0.8, 0.25, 1);
+  box-shadow: 0 -2px 20px rgba(0, 0, 0, 0.12);
+}
+
+.bus-info-card.show {
+  bottom: 0;
+}
+
+.pass-distance {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 1700;
+  background: rgba(255, 255, 255, 0.96);
+  padding: 12px 16px 16px;
+  border-top: 1px solid #dde3ec;
+  display: none;
+  will-change: transform;
+}
+
+.pass-distance.show {
+  display: block;
+}
+
+/* ── On-bus banner — top center floating pill ────────────────────────────────── */
+.on-bus-banner {
+  position: fixed;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2100;
+  background: #1e8e3e;
+  color: #fff;
+  border-radius: 50px;
+  padding: 8px 18px;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  display: none;
+  align-items: center;
+  gap: 8px;
+  pointer-events: none;            /* ⚡ No hit-test overhead */
+  will-change: transform;
+}
+
+.on-bus-banner.show {
+  display: flex;
+  animation: popIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes popIn {
+  from { transform: translateX(-50%) scale(0.85); opacity: 0; }
+  to   { transform: translateX(-50%) scale(1);    opacity: 1; }
+}
+
+/* ── Recenter FAB ────────────────────────────────────────────────────────────── */
+.recenter-fab {
+  position: fixed;
+  right: 14px;
+  bottom: 80px;
+  z-index: 2000;
+  width: 44px;             /* ⚡ 44px = WCAG minimum touch target */
+  height: 44px;
+  border-radius: 50%;
+  border: none;
+  background: #fff;
+  color: #1967d2;
+  font-size: 20px;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.16);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.15s;
+}
+
+.recenter-fab:active {
+  transform: scale(0.9);
+}
+
+/* ── Driver toast ────────────────────────────────────────────────────────────── */
+#drv-toast {
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 3000;
+  background: rgba(30, 30, 30, 0.88);
+  color: #fff;
+  border-radius: 50px;
+  padding: 10px 20px;
+  font-size: 13px;
+  font-weight: 600;
+  display: none;
+  white-space: nowrap;
+  max-width: 90vw;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  pointer-events: none;
+  will-change: opacity;
+}
+
+#drv-toast.show {
+  display: block;
+  animation: fadeInToast 0.3s ease;
+}
+
+@keyframes fadeInToast {
+  from { opacity: 0; transform: translateX(-50%) translateY(10px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+/* ── Stop/suggest list scroll containers ─────────────────────────────────────── */
+.stops-list-inner,
+.bus-list,
+.dest-stops-list,
+.suggest-box {
+  -webkit-overflow-scrolling: touch; /* ⚡ iOS momentum scroll */
+  overscroll-behavior: contain;       /* ⚡ No scroll chaining */
+}
+
+/* ── Prevent text selection on map interact ──────────────────────────────────── */
+#pass-map *,
+#driver-map * {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* ── Responsive breakpoints ──────────────────────────────────────────────────── */
+
+/* Mobile default: full-width floating panels */
+@media (max-width: 599px) {
+  .pass-search-float { top: 8px; left: 8px; right: 8px; padding: 8px 10px; }
+  .bus-results-overlay { left: 0; right: 0; border-radius: 18px 18px 0 0; }
+  .bus-info-card { left: 0; right: 0; border-radius: 20px 20px 0 0; }
+  .pass-distance { padding: 10px 12px 14px; }
+}
+
+/* Tablet/desktop: center-constrained panels with max-width */
+@media (min-width: 600px) {
+  .pass-search-float {
+    left: 50%;
+    transform: translateX(-50%);
+    width: 500px;
+    max-width: calc(100vw - 24px);
+  }
+
+  .bus-results-overlay {
+    left: 50%;
+    transform: translateX(-50%);
+    width: 480px;
+    max-width: calc(100vw - 24px);
+    border-radius: 18px;
+    bottom: 16px;
+    box-shadow: 0 6px 28px rgba(0, 0, 0, 0.14);
+  }
+
+  .bus-results-overlay.show {
+    display: block;
+  }
+
+  .bus-info-card {
+    left: 50%;
+    transform: translateX(-50%);
+    width: 480px;
+    max-width: calc(100vw - 24px);
+    border-radius: 20px;
+  }
+
+  .bus-info-card.show {
+    bottom: 16px;
+    transform: translateX(-50%);
+  }
+
+  .pass-distance {
+    left: 50%;
+    transform: translateX(-50%);
+    width: 480px;
+    max-width: calc(100vw - 24px);
+    border-radius: 20px 20px 0 0;
+    border: 1px solid #dde3ec;
+  }
+}
+
+/* ── Leaflet control positioning — avoid floating UI overlap ─────────────────── */
+.leaflet-top.leaflet-left {
+  top: 160px !important; /* Below search float + mode bar */
+}
+
+.leaflet-bottom.leaflet-right {
+  bottom: 24px !important;
+  right: 64px !important; /* Left of recenter FAB */
+}
+
+/* ── Suppress Leaflet default styles that conflict ───────────────────────────── */
+.leaflet-container {
+  font-family: 'DM Sans', sans-serif;
+  background: #e8e0d8; /* OSM-like land color while tiles load */
+}
+
+/* ⚡ Override Leaflet's box-shadow on controls — use lighter version */
+.leaflet-control {
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.16) !important;
+}

@@ -1,0 +1,24 @@
+{
+  "name": "bustrack-india",
+  "version": "4.0.0",
+  "description": "BusTrack India — Live Bus Tracking Web Application",
+  "type": "module",
+  "scripts": {
+    "dev":     "vite",
+    "build":   "tsc && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "lint":    "eslint src --ext .ts",
+    "clean":   "rm -rf dist"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@types/leaflet":    "^1.9.8",
+    "leaflet":           "^1.9.4",
+    "typescript":        "^5.4.5",
+    "vite":              "^5.2.11",
+    "eslint":            "^9.1.0",
+    "@typescript-eslint/parser":  "^7.8.0",
+    "@typescript-eslint/eslint-plugin": "^7.8.0"
+  }
+}
